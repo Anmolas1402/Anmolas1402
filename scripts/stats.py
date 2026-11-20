@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cards_common import THEMES, svg, txt, write  # noqa: E402
+from build_cards import bubble, timing_marks  # noqa: E402
 
 LOGIN = "Anmolas1402"
 Q = """query($login:String!){user(login:$login){
@@ -39,13 +40,10 @@ def build(u, t):
     cal = cc["contributionCalendar"]
     days = [d for w in cal["weeks"] for d in w["contributionDays"]]
     repos = u["repositories"]["nodes"]
-    stars = sum(r["stargazerCount"] for r in repos)
-    langs, colors = {}, {}
+    langs = {}
     for r in repos:
         for e in r["languages"]["edges"]:
-            n = e["node"]["name"]
-            langs[n] = langs.get(n, 0) + e["size"]
-            colors[n] = e["node"]["color"] or t["mute"]
+            langs[e["node"]["name"]] = langs.get(e["node"]["name"], 0) + e["size"]
     total_b = sum(langs.values()) or 1
     top = sorted(langs.items(), key=lambda x: -x[1])[:5]
 
@@ -56,55 +54,49 @@ def build(u, t):
         elif i > 0:
             break
 
-    b = [txt(32, 48, "Live from GitHub", 17, t["text"], 700)]
-    stamp = datetime.now(timezone.utc).strftime("%d %b %Y")
-    b.append(txt(W - 32, 48, f"refreshed {stamp}", 13, t["sub"], anchor="end"))
+    b = [txt(36, 44, "Attendance on GitHub, last 12 months", 15, t["print"], "cond")]
+    stamp = datetime.now(timezone.utc).strftime("%-d %b %Y")
+    b.append(txt(W - 24, 44, f"Checked on {stamp}", 14, t["print"], "cond", "end"))
 
     nums = [
-        (f'{cal["totalContributions"]:,}', "contributions"),
-        (f'{cc["totalCommitContributions"]:,}', "commits"),
-        (f'{u["repositories"]["totalCount"]}', "public repos"),
-        (f"{stars}", "stars"),
-        (f"{streak}", "day streak"),
+        ("Contributions", f'{cal["totalContributions"]:,}'),
+        ("Commits", f'{cc["totalCommitContributions"]:,}'),
+        ("Public repos", f'{u["repositories"]["totalCount"]}'),
+        ("Current streak", f"{streak} days"),
     ]
-    cw = (W - 64) / len(nums)
-    for i, (v, l) in enumerate(nums):
-        x = 32 + cw * i + cw / 2
-        if i:
-            b.append(f'<line x1="{32 + cw*i:.0f}" y1="72" x2="{32 + cw*i:.0f}" y2="124" stroke="{t["line"]}"/>')
-        col = t["accent"] if i in (0, len(nums) - 1) else t["text"]
-        b.append(txt(x, 104, v, 30, col, 800, anchor="middle", extra='letter-spacing="-1"'))
-        b.append(txt(x, 126, l, 13, t["sub"], anchor="middle"))
+    cw = (W - 60) / len(nums)
+    for i, (lab, v) in enumerate(nums):
+        x = 36 + cw * i
+        b.append(txt(x, 82, lab, 14, t["print"], "cond"))
+        b.append(f'<line x1="{x}" y1="116" x2="{x + cw - 28:.0f}" y2="116" stroke="{t["print"]}" stroke-width=".9"/>')
+        b.append(txt(x + 2, 110, v, 26, t["ink"], "pen"))
 
-    weeks = cal["weeks"][-52:]
-    cs, gap = 11, 3.6
-    gw = len(weeks) * (cs + gap) - gap
-    hx, hy = (W - gw) / 2, 152
+    weeks = cal["weeks"][-53:]
+    pitch, r = 13.6, 4.9
+    gw = len(weeks) * pitch
+    hx, hy = 36 + (W - 60 - gw) / 2 + pitch / 2, 150
+    for k, dname in ((1, "Mon"), (3, "Wed"), (5, "Fri")):
+        b.append(txt(hx - 12, hy + k * pitch + 4, dname, 10, t["print"], "cond", "end"))
     mx = max([d["contributionCount"] for w in weeks for d in w["contributionDays"]] + [1])
     for wi, w in enumerate(weeks):
         for d in w["contributionDays"]:
             dow = (datetime.strptime(d["date"], "%Y-%m-%d").weekday() + 1) % 7
             c = d["contributionCount"]
-            fill, op = (t["tile"], 1) if c == 0 else (t["accent"], 0.3 + 0.7 * min(1, c / mx) ** 0.6)
-            b.append(f'<rect x="{hx + wi*(cs+gap):.1f}" y="{hy + dow*(cs+gap):.1f}" width="{cs}" height="{cs}" rx="2.5" '
-                     f'fill="{fill}" opacity="{op:.2f}" stroke="{t["line"]}" stroke-opacity="{.6 if c == 0 else 0}"/>')
+            op = 0.35 + 0.65 * min(1, c / mx) ** 0.6
+            b.append(bubble(hx + wi * pitch, hy + dow * pitch, r, t, filled=c > 0, opacity=f"{op:.2f}"))
 
-    ly = hy + 7 * (cs + gap) + 22
-    x = hx
-    for n, sz in top:
-        w = gw * sz / total_b
-        b.append(f'<rect x="{x:.1f}" y="{ly}" width="{max(w-3,1):.1f}" height="8" rx="4" fill="{colors[n]}"/>')
-        x += w
-    lx = hx
+    ly = hy + 7 * pitch + 20
+    b.append(txt(36, ly + 5, "Languages", 14, t["print"], "cond"))
+    lx = 110
     for n, sz in top:
         label = f"{n} {100*sz/total_b:.0f}%"
-        b.append(f'<circle cx="{lx+5}" cy="{ly+30}" r="5" fill="{colors[n]}"/>')
-        b.append(txt(lx + 16, ly + 35, label, 13, t["sub"]))
-        lx += 34 + len(label) * 7
-    H = int(ly + 58)
-
-    label = (f'{cal["totalContributions"]} contributions in the last year, {cc["totalCommitContributions"]} commits, '
-             f'{u["repositories"]["totalCount"]} public repos, {stars} stars, {streak} day streak')
+        b.append(bubble(lx + 7, ly, 7, t, filled=True))
+        b.append(txt(lx + 21, ly + 5, label, 14, t["text"], "body"))
+        lx += 40 + len(label) * 7
+    H = int(ly + 30)
+    b.insert(0, timing_marks(H, t))
+    label = (f'GitHub attendance: {cal["totalContributions"]} contributions in the last year, '
+             f'{cc["totalCommitContributions"]} commits, {u["repositories"]["totalCount"]} public repos, {streak} day streak')
     return svg(W, H, label, "".join(b), t)
 
 

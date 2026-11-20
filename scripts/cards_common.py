@@ -1,60 +1,88 @@
-"""Shared palette and SVG helpers for every card."""
+"""Shared palette, fonts and SVG helpers.
+
+The look is an Indian exam OMR sheet: white paper, pink drop-out ink for
+everything printed, blue ballpoint for everything filled in. Fonts are
+subset per card and embedded, so GitHub shows real type, not system fallbacks.
+"""
 import base64
+import io
 import os
 from html import escape
+
+from fontTools import subset
+from fontTools.ttLib import TTFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "assets")
 os.makedirs(ASSETS, exist_ok=True)
 
-# Matched to GitHub's own canvas so the cards sit flush on the profile page.
 THEMES = {
-    "dark": dict(bg="#0d1117", bg2="#161b22", line="#30363d", text="#f0f6fc", sub="#9198a1",
-                 mute="#6e7681", accent="#ff6a2b", green="#3fb950", chip="#161b22", tile="#1c2128",
-                 dot="#f0f6fc", glow=".20"),
-    "light": dict(bg="#ffffff", bg2="#f6f8fa", line="#d1d9e0", text="#1f2328", sub="#59636e",
-                  mute="#818b98", accent="#e8530f", green="#1a7f37", chip="#f6f8fa", tile="#f6f8fa",
-                  dot="#1f2328", glow=".10"),
+    # paper sheet
+    "light": dict(paper="#ffffff", print="#d9416f", rule="#f4c3d3", tint="#fdf0f4",
+                  ink="#1d3a9a", text="#24222b", sub="#5d5866", mark="#24222b"),
+    # the same sheet as a carbon copy, for dark mode
+    "dark": dict(paper="#111633", print="#ff7aa2", rule="#4b2f55", tint="#1a1c3d",
+                 ink="#c7d3ff", text="#eceaf3", sub="#a7a3b8", mark="#eceaf3"),
 }
 
-SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif"
+FONTS = {
+    ("Barlow", 400): "barlow-latin-400-normal.woff2",
+    ("Barlow", 500): "barlow-latin-500-normal.woff2",
+    ("Barlow Condensed", 600): "barlow-condensed-latin-600-normal.woff2",
+    ("Barlow Condensed", 700): "barlow-condensed-latin-700-normal.woff2",
+    ("Kalam", 400): "kalam-latin-400-normal.woff2",
+}
+ROLE = {
+    "body": ("Barlow", 400), "bodym": ("Barlow", 500),
+    "cond": ("Barlow Condensed", 600), "condb": ("Barlow Condensed", 700),
+    "pen": ("Kalam", 400),
+}
 
-STYLE = f"""<style>
-text{{font-family:{SANS}}}
-@keyframes spin{{to{{transform:rotate(360deg)}}}}
-@keyframes ping{{0%{{transform:scale(1);opacity:.65}}80%,100%{{transform:scale(2.8);opacity:0}}}}
-@keyframes tw{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
-@keyframes grow{{from{{transform:scaleX(0)}}to{{transform:scaleX(1)}}}}
-@keyframes flow{{to{{stroke-dashoffset:-16}}}}
-@keyframes float{{0%,100%{{transform:translateY(0)}}50%{{transform:translateY(-5px)}}}}
-.orbit{{transform-box:view-box;animation:spin 14s linear infinite}}
-.ping{{transform-box:fill-box;transform-origin:center;animation:ping 2.4s ease-out infinite}}
-.tw{{animation:tw 3.2s ease-in-out infinite}}
-.grow{{transform-box:fill-box;transform-origin:left;animation:grow 1.4s cubic-bezier(.2,.8,.2,1) both}}
-.flow{{stroke-dasharray:4 4;animation:flow 1.2s linear infinite}}
-.float{{animation:float 4.5s ease-in-out infinite}}
-@media (prefers-reduced-motion:reduce){{*{{animation:none!important}}}}
-</style>"""
+_used = {}  # (family, weight) -> set of chars, for the card being built
 
 
-def svg(w, h, label, body, t, glow=None):
-    g = ""
-    if glow:
-        gx, gy, r = glow
-        g = (f'<defs><radialGradient id="glow" cx="{gx}" cy="{gy}" r="{r}" gradientUnits="userSpaceOnUse">'
-             f'<stop offset="0" stop-color="{t["accent"]}" stop-opacity="{t["glow"]}"/>'
-             f'<stop offset="1" stop-color="{t["accent"]}" stop-opacity="0"/></radialGradient></defs>'
-             f'<rect x="1" y="1" width="{w-2}" height="{h-2}" rx="14" fill="url(#glow)"/>')
+def _font_css():
+    css = []
+    for key, chars in _used.items():
+        path = os.path.join(ROOT, "data", "fonts", FONTS[key])
+        f = TTFont(path)
+        opts = subset.Options()
+        opts.flavor = "woff2"
+        opts.layout_features = ["kern", "liga", "tnum", "lnum"]
+        s = subset.Subsetter(opts)
+        s.populate(text="".join(sorted(chars | {" "})))
+        s.subset(f)
+        buf = io.BytesIO()
+        f.flavor = "woff2"
+        f.save(buf)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        css.append(f"@font-face{{font-family:'{key[0]}';font-weight:{key[1]};"
+                   f"src:url(data:font/woff2;base64,{b64}) format('woff2')}}")
+    return "".join(css)
+
+
+MOTION = """
+@keyframes fill{from{transform:scale(0)}to{transform:scale(1)}}
+.fill{transform-box:fill-box;transform-origin:center;animation:fill .35s cubic-bezier(.3,1.6,.5,1) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+"""
+
+
+def svg(w, h, label, body, t):
+    css = _font_css()
+    _used.clear()
     return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
             f'width="{w}" height="{h}" viewBox="0 0 {w} {h}" role="img" aria-label="{escape(label)}">'
-            f'<title>{escape(label)}</title>{STYLE}'
-            f'<rect x=".5" y=".5" width="{w-1}" height="{h-1}" rx="14" fill="{t["bg"]}" stroke="{t["line"]}"/>'
-            f'{g}{body}</svg>')
+            f'<title>{escape(label)}</title><style>{css}{MOTION}</style>'
+            f'<rect x=".75" y=".75" width="{w-1.5}" height="{h-1.5}" rx="3" fill="{t["paper"]}" stroke="{t["print"]}" stroke-width="1.5"/>'
+            f'{body}</svg>')
 
 
-def txt(x, y, s, size, fill, weight=400, anchor="start", extra=""):
-    return (f'<text x="{x}" y="{y}" font-size="{size}" font-weight="{weight}" fill="{fill}" '
-            f'text-anchor="{anchor}" {extra}>{escape(s)}</text>')
+def txt(x, y, s, size, fill, role="body", anchor="start", extra=""):
+    fam, wt = ROLE[role]
+    _used.setdefault((fam, wt), set()).update(s)
+    return (f'<text x="{x}" y="{y}" font-family="\'{fam}\'" font-weight="{wt}" font-size="{size}" '
+            f'fill="{fill}" text-anchor="{anchor}" {extra}>{escape(s)}</text>')
 
 
 def img_uri(name):
@@ -63,11 +91,11 @@ def img_uri(name):
     return f"data:{mime};base64," + base64.b64encode(open(path, "rb").read()).decode()
 
 
-def image(x, y, w, h, name, clip=None):
+def image(x, y, w, h, name, clip=None, extra=""):
     c = f' clip-path="url(#{clip})"' if clip else ""
     u = img_uri(name)
     return (f'<image x="{x}" y="{y}" width="{w}" height="{h}" href="{u}" xlink:href="{u}"{c} '
-            f'preserveAspectRatio="xMidYMid slice"/>')
+            f'preserveAspectRatio="xMidYMid slice" {extra}/>')
 
 
 def write(name, theme, content):

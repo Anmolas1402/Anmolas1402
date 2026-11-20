@@ -1,9 +1,8 @@
-"""Builds every static card on the profile, in dark and light.
+"""Builds every static card on the profile, in light (paper) and dark (carbon copy).
 
 Run: python3 scripts/build_cards.py
-Inputs: data/ncr-pins.json (snapshot of the NCR Hiring Map), data/icons.json
-(Simple Icons paths), data/img/ (photo and logos). Output: assets/*.svg.
-Every word and number on a card lives in this file.
+Inputs: data/ncr-pins.json (snapshot of the NCR Hiring Map), data/img/ (photo,
+logos), data/fonts/. Output: assets/*.svg. Every word and number lives here.
 """
 import json
 import math
@@ -11,204 +10,33 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cards_common import ROOT, THEMES, svg, txt, image, write  # noqa: E402
+from cards_common import THEMES, ROOT, svg, txt, image, write  # noqa: E402
 
 pins = json.load(open(os.path.join(ROOT, "data", "ncr-pins.json")))
 PTS = pins["pts"]  # [lat, lng, verified, hiring]
-ICONS = json.load(open(os.path.join(ROOT, "data", "icons.json")))
+ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-# ------------------------------------------------------------------ helpers
-def pill(x, y, label, t, dot=True):
-    w = 26 + len(label) * 7.4 + (10 if dot else 0)
-    out = [f'<rect x="{x}" y="{y}" width="{w:.0f}" height="24" rx="12" fill="{t["chip"]}" stroke="{t["line"]}"/>']
-    tx = x + 13
-    if dot:
-        out.append(f'<circle class="ping" cx="{x+14}" cy="{y+12}" r="3.5" fill="{t["green"]}"/>')
-        out.append(f'<circle cx="{x+14}" cy="{y+12}" r="3.5" fill="{t["green"]}"/>')
-        tx = x + 25
-    out.append(txt(tx, y + 16.5, label, 11, t["text"], 700, extra='letter-spacing="1.2"'))
+# ------------------------------------------------------------------ primitives
+def bubble(x, y, r, t, filled=False, letter=None, delay=None, opacity=1):
+    out = [f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="none" stroke="{t["print"]}" stroke-width=".9"/>']
+    if letter and not filled:
+        out.append(txt(x, y + r * 0.55, letter, r * 1.25, t["print"], "cond", "middle"))
+    if filled:
+        anim = f' class="fill" style="animation-delay:{delay:.2f}s"' if delay is not None else ""
+        out.append(f'<circle{anim} cx="{x:.1f}" cy="{y:.1f}" r="{r-.6:.1f}" fill="{t["ink"]}" opacity="{opacity}"/>')
     return "".join(out)
 
 
-def arrow(x, y, t, size=18):
-    return (f'<path d="M{x} {y+size} L{x+size} {y} M{x+5} {y} H{x+size} V{y+size-5}" fill="none" '
-            f'stroke="{t["sub"]}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>')
+def field(x, y, w, label, value, t, size=22):
+    return (txt(x, y, label, 14, t["print"], "cond")
+            + f'<line x1="{x}" y1="{y+32}" x2="{x+w}" y2="{y+32}" stroke="{t["print"]}" stroke-width=".9"/>'
+            + txt(x + 2, y + 28, value, size, t["ink"], "pen"))
 
 
-def lum(hexc):
-    r, g, b = (int(hexc[i:i + 2], 16) / 255 for i in (0, 2, 4))
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-
-def icon(key, x, y, size, t, theme):
-    ic = ICONS[key]
-    col = "#" + ic["hex"]
-    if theme == "dark" and lum(ic["hex"]) < 0.25:
-        col = t["text"]
-    if theme == "light" and lum(ic["hex"]) > 0.85:
-        col = t["text"]
-    s = size / 24
-    return f'<path transform="translate({x} {y}) scale({s:.4f})" d="{ic["path"]}" fill="{col}"/>'
-
-
-def project(pts, x0, y0, w, h, pad=4):
-    lats_s, lngs_s = sorted(p[0] for p in pts), sorted(p[1] for p in pts)
-    k = int(len(pts) * 0.01)
-    la0, la1, lo0, lo1 = lats_s[k], lats_s[-k - 1], lngs_s[k], lngs_s[-k - 1]
-    kx = math.cos(math.radians((la0 + la1) / 2))
-    sw, sh = (lo1 - lo0) * kx, la1 - la0
-    sc = min((w - 2 * pad) / sw, (h - 2 * pad) / sh)
-    ox, oy = x0 + (w - sw * sc) / 2, y0 + (h - sh * sc) / 2
-    f = lambda la, lo: (ox + (lo - lo0) * kx * sc, oy + (la1 - la) * sc)
-    inside = lambda p: la0 <= p[0] <= la1 and lo0 <= p[1] <= lo1
-    return f, inside
-
-
-# ------------------------------------------------------------------ hero
-def hero(t, theme):
-    W, H = 840, 352
-    cx, cy, r = 680, 196, 96
-    b = []
-    b.append(txt(40, 50, "@ANMOLAS1402", 12, t["accent"], 700, extra='letter-spacing="2.4"'))
-    b.append(f'<circle class="ping" cx="{W-196}" cy="46" r="4" fill="{t["green"]}"/><circle cx="{W-196}" cy="46" r="4" fill="{t["green"]}"/>')
-    b.append(txt(W - 40, 50, "Open to work, Gurugram", 13, t["sub"], 500, anchor="end"))
-    b.append(f'<line x1="40" y1="68" x2="{W-40}" y2="68" stroke="{t["line"]}"/>')
-    b.append(f'<line class="grow" x1="40" y1="68" x2="150" y2="68" stroke="{t["accent"]}" stroke-width="2"/>')
-    b.append(txt(36, 146, "Anmol", 76, t["text"], 800, extra='letter-spacing="-3"'))
-    b.append(txt(36, 222, "Sethi.", 76, t["accent"], 800, extra='letter-spacing="-3"'))
-    b.append(txt(40, 258, "Product ops from Gurugram, India. I build the systems", 15, t["sub"]))
-    b.append(txt(40, 279, "behind products that scale, and the tools that run them.", 15, t["sub"]))
-    x = 40
-    for c in ["Product ops", "Data", "AI tools", "0 → 1"]:
-        w = 30 + len(c) * 7.6
-        b.append(f'<rect x="{x}" y="300" width="{w:.0f}" height="28" rx="14" fill="none" stroke="{t["line"]}"/>')
-        b.append(txt(x + w / 2, 319, c, 13, t["text"], 500, anchor="middle"))
-        x += w + 10
-    # photo with orbit
-    b.append(f'<circle cx="{cx}" cy="{cy}" r="{r+26}" fill="none" stroke="{t["accent"]}" stroke-opacity=".55" stroke-width="1.5" stroke-dasharray="2 6"/>')
-    b.append(f'<g class="orbit" style="transform-origin:{cx}px {cy}px"><circle cx="{cx}" cy="{cy-r-26}" r="5" fill="{t["accent"]}"/></g>')
-    b.append(f'<clipPath id="ph"><circle cx="{cx}" cy="{cy}" r="{r}"/></clipPath>')
-    b.append(image(cx - r, cy - r, 2 * r, 2 * r, "anmol.jpg", clip="ph"))
-    b.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{t["line"]}" stroke-width="2"/>')
-    b.append(f'<path d="M{W-56} 98 v14 M{W-63} 105 h14" stroke="{t["accent"]}" stroke-width="2" stroke-linecap="round"/>')
-    label = ("Anmol Sethi. Product ops from Gurugram, India. I build the systems behind products that scale, "
-             "and the tools that run them. Open to work.")
-    return svg(W, H, label, "".join(b), t, glow=(cx, cy, 300))
-
-
-# ------------------------------------------------------------------ numbers
-NUMBERS = [
-    ("500K+", "students served"),
-    ("1 → 14", "exams scaled"),
-    ("99.4%", "predictor accuracy"),
-    ("100+", "interns onboarded"),
-    (f'{pins["total"]:,}', "startups mapped"),
-]
-
-
-def numbers(t, theme):
-    W, H = 840, 132
-    cw = (W - 40) / len(NUMBERS)
-    b = []
-    for i, (v, l) in enumerate(NUMBERS):
-        x = 20 + cw * i + cw / 2
-        if i:
-            b.append(f'<line x1="{20 + cw*i:.0f}" y1="34" x2="{20 + cw*i:.0f}" y2="98" stroke="{t["line"]}"/>')
-        col = t["accent"] if i in (0, len(NUMBERS) - 1) else t["text"]
-        b.append(txt(x, 74, v, 34, col, 800, anchor="middle", extra='letter-spacing="-1"'))
-        b.append(txt(x, 100, l, 14, t["sub"], anchor="middle"))
-    return svg(W, H, "Numbers: " + ", ".join(f"{v} {l}" for v, l in NUMBERS), "".join(b), t)
-
-
-# ------------------------------------------------------------------ project cards
-def card(t, status, title, lines, tech, viz, label):
-    W, H = 412, 200
-    b = [pill(26, 26, status, t), arrow(W - 44, 28, t)]
-    b.append(txt(26, 92, title, 24, t["text"], 700, extra='letter-spacing="-.4"'))
-    for i, l in enumerate(lines):
-        b.append(txt(26, 120 + i * 21, l, 14, t["sub"]))
-    b.append(txt(26, 174, "  ·  ".join(tech), 13, t["accent"], 700))
-    b.append(viz)
-    return svg(W, H, label, "".join(b), t)
-
-
-def viz_map(t):
-    f, inside = project(PTS, 268, 64, 124, 118)
-    out = []
-    for i, p in enumerate(PTS):
-        if not inside(p):
-            continue
-        x, y = f(p[0], p[1])
-        if p[2]:
-            out.append(f'<circle class="tw" style="animation-delay:{(i*37%300)/100:.2f}s" cx="{x:.1f}" cy="{y:.1f}" r="1.5" fill="{t["accent"]}"/>')
-        else:
-            out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r=".9" fill="{t["dot"]}" opacity=".25"/>')
-    return "".join(out)
-
-
-def viz_labels(t):
-    rows = [("verified", t["green"]), ("inferred", "#d29922"), ("unknown", t["mute"])]
-    out = []
-    for i, (lab, col) in enumerate(rows):
-        y = 84 + i * 30
-        out.append(f'<g class="float" style="animation-delay:{i*.4:.1f}s">')
-        out.append(f'<rect x="290" y="{y}" width="96" height="24" rx="12" fill="{col}" fill-opacity=".12" stroke="{col}" stroke-opacity=".55"/>')
-        out.append(f'<circle cx="305" cy="{y+12}" r="3.5" fill="{col}"/>')
-        out.append(txt(315, y + 16.5, lab, 12, col, 700))
-        out.append("</g>")
-    return "".join(out)
-
-
-def viz_bars(t):
-    out = []
-    for i, (lab, v) in enumerate([("auth ok", 94), ("gated", 30), ("arch", 12)]):
-        y = 90 + i * 28
-        out.append(txt(290, y + 9, lab, 11, t["sub"], 600))
-        out.append(txt(390, y + 9, str(v), 11, t["text"], 700, anchor="end"))
-        out.append(f'<rect x="290" y="{y+15}" width="100" height="5" rx="2.5" fill="{t["line"]}"/>')
-        out.append(f'<rect class="grow" style="animation-delay:{.15*i:.2f}s" x="290" y="{y+15}" width="{v:.0f}" height="5" rx="2.5" fill="{t["accent"]}"/>')
-    return "".join(out)
-
-
-def viz_flow(t):
-    # marks -> rank -> college, the one flow the predictor owns
-    nodes = [(352, 84, "marks"), (352, 120, "rank"), (352, 156, "college")]
-    out = []
-    for (x1, y1, _), (x2, y2, _) in zip(nodes, nodes[1:]):
-        out.append(f'<line class="flow" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{t["accent"]}" stroke-width="1.5"/>')
-    for i, (x, y, lab) in enumerate(nodes):
-        w = 18 + len(lab) * 7
-        last = i == len(nodes) - 1
-        out.append(f'<rect x="{x - w/2:.0f}" y="{y-12}" width="{w:.0f}" height="24" rx="7" fill="{t["tile"]}" stroke="{t["accent"] if last else t["line"]}"/>')
-        out.append(txt(x, y + 4.5, lab, 12, t["accent"] if last else t["text"], 700, anchor="middle"))
-    return "".join(out)
-
-
-CARDS = [
-    ("ncrhiring", lambda t: card(t, "LIVE", "NCR Hiring Map",
-                                 [f'{pins["total"]:,} Delhi NCR startups on one map.', "Verified pins never mix with guesses."],
-                                 ["Next.js", "Leaflet", "Scraping"], viz_map(t),
-                                 f'NCR Hiring Map: {pins["total"]:,} Delhi NCR startups on one map, built from a scraping pipeline.')),
-    ("fieldguide", lambda t: card(t, "LIVE", "OAuth Fieldguide",
-                                  ["Type a provider, get its OAuth guide.", "Every claim is labelled by evidence."],
-                                  ["TypeScript", "React", "Agents"], viz_labels(t),
-                                  "OAuth Fieldguide: type a provider, get its OAuth setup guide, every claim labelled verified, inferred or unknown.")),
-    ("buildability", lambda t: card(t, "RESEARCH", "100-App Buildability",
-                                    ["Can you integrate these 100 apps?", "92.5% verified claim accuracy."],
-                                    ["Python", "Agents", "Evidence"], viz_bars(t),
-                                    "100-App Buildability: agent-built research on 100 apps, 92.5% verified claim accuracy.")),
-    ("predictor", lambda t: card(t, "SHIPPED", "College Predictor",
-                                 ["Marks in, likely college out.", "~10 lakh visits in 3 months."],
-                                 ["MathonGo", "Product", "Data"], viz_flow(t),
-                                 "College Predictor at MathonGo: JoSAA, JAC and BITSAT seat prediction, about 10 lakh visits in 3 months.")),
-]
-
-
-# ------------------------------------------------------------------ quote
-QUOTE = ("Anmol is a cool-headed guy who can manage a big team at such a young age. Started working at a "
-         "young age. I worked with Anmol on multiple products from scratch at MathonGo for a good 1.5 years.")
-QUOTE_END = "Highly recommend Anmol for management, consulting and product roles."
+def timing_marks(h, t, x=10):
+    return "".join(f'<rect x="{x}" y="{y}" width="11" height="4" fill="{t["mark"]}"/>'
+                   for y in range(28, h - 24, 18))
 
 
 def wrap(text, n):
@@ -222,141 +50,312 @@ def wrap(text, n):
     return out + [line]
 
 
-def quote_card(t, theme):
-    W = 840
-    b = [f'<path d="M40 44 h10 v10 c0 8 -4 14 -10 16 v-5 c3 -2 5 -5 5 -9 h-5z M58 44 h10 v10 c0 8 -4 14 -10 16 v-5 c3 -2 5 -5 5 -9 h-5z" fill="{t["accent"]}"/>']
-    y = 104
-    for l in wrap(QUOTE, 99):
-        b.append(txt(40, y, l, 16, t["sub"]))
-        y += 26
-    for l in wrap(QUOTE_END, 99):
-        b.append(txt(40, y, l, 16, t["text"], 700))
-        y += 26
-    y += 18
-    b.append(f'<line x1="40" y1="{y-16}" x2="{W-40}" y2="{y-16}" stroke="{t["line"]}"/>')
-    b.append(txt(40, y + 12, "Kunal Taneja", 15, t["text"], 700))
-    b.append(txt(40, y + 32, "Founder, Canvas Classes. Ex-Head of Content, MathonGo. Managed me directly.", 13, t["sub"]))
-    b.append(txt(W - 40, y + 12, "LinkedIn recommendation", 13, t["sub"], 500, anchor="end"))
-    b.append(txt(W - 40, y + 32, "May 2026", 13, t["mute"], anchor="end"))
-    H = y + 56
-    return svg(W, H, f"Kunal Taneja, who managed Anmol at MathonGo: {QUOTE} {QUOTE_END}", "".join(b), t)
+def project(pts, x0, y0, w, h, pad=2):
+    lats_s, lngs_s = sorted(p[0] for p in pts), sorted(p[1] for p in pts)
+    k = int(len(pts) * 0.01)
+    la0, la1, lo0, lo1 = lats_s[k], lats_s[-k - 1], lngs_s[k], lngs_s[-k - 1]
+    kx = math.cos(math.radians((la0 + la1) / 2))
+    sw, sh = (lo1 - lo0) * kx, la1 - la0
+    sc = min((w - 2 * pad) / sw, (h - 2 * pad) / sh)
+    ox, oy = x0 + (w - sw * sc) / 2, y0 + (h - sh * sc) / 2
+    f = lambda la, lo: (ox + (lo - lo0) * kx * sc, oy + (la1 - la) * sc)
+    inside = lambda p: la0 <= p[0] <= la1 and lo0 <= p[1] <= lo1
+    return f, inside
 
 
-# ------------------------------------------------------------------ path
-PATH = [
-    ("Dec 2023", "MathonGo", "Operations Manager", "mathongo-mark.png", False),
-    ("Sept 2025", "ARC, TIET", "President, 40-person team", "arc.png", False),
-    ("2026", "Building", "Fieldguide, NCR map, research", None, False),
-    ("2027", "Thapar Institute", "B.Tech, ENC", "thapar.png", True),
-]
+# ------------------------------------------------------------------ hero
+NAME = "ANMOL SETHI"
 
 
-def path_card(t, theme):
-    W, H = 840, 200
-    b = [txt(40, 46, "The path so far", 17, t["text"], 700)]
-    x0, x1, y = 110, W - 110, 116
-    b.append(f'<line x1="{x0}" y1="{y}" x2="{x1}" y2="{y}" stroke="{t["line"]}" stroke-width="2"/>')
-    step = (x1 - x0) / (len(PATH) - 1)
-    b.append(f'<line class="grow" x1="{x0}" y1="{y}" x2="{x0 + step*2}" y2="{y}" stroke="{t["accent"]}" stroke-width="2"/>')
-    for i, (when, org, role, logo, future) in enumerate(PATH):
-        x = x0 + i * step
-        stroke = t["mute"] if future else t["accent"]
-        dash = ' stroke-dasharray="3 3"' if future else ""
-        if logo:
-            b.append(f'<clipPath id="lg{i}"><rect x="{x-15}" y="{y-15}" width="30" height="30" rx="8"/></clipPath>')
-            b.append(f'<rect x="{x-18}" y="{y-18}" width="36" height="36" rx="10" fill="{t["bg"]}" stroke="{stroke}" stroke-width="1.5"{dash}/>')
-            b.append(image(x - 15, y - 15, 30, 30, logo, clip=f"lg{i}"))
-        else:
-            b.append(f'<circle class="ping" cx="{x}" cy="{y}" r="6" fill="{t["accent"]}"/><circle cx="{x}" cy="{y}" r="7" fill="{t["accent"]}"/>')
-        b.append(txt(x, 160, org, 15, t["text"], 700, anchor="middle"))
-        b.append(txt(x, 180, role, 12.5, t["sub"], anchor="middle"))
-        b.append(txt(x, 84, when, 12, t["mute"] if future else t["accent"], 700, anchor="middle"))
-    label = "Path: " + "; ".join(f"{w} {o}, {r}" for w, o, r, _, _ in PATH)
+def hero(t, theme):
+    W, H = 840, 456
+    b = [timing_marks(H, t)]
+    # name grid, the way every JEE aspirant has filled it
+    gx, pitch, by, step, r = 42, 20, 104, 12.6, 5.2
+    b.append(txt(gx, 46, "Candidate's name", 14, t["print"], "cond"))
+    for c, ch in enumerate(NAME):
+        x = gx + c * pitch + 9
+        b.append(f'<rect x="{x-9}" y="60" width="18" height="26" fill="none" stroke="{t["print"]}" stroke-width=".9"/>')
+        if ch != " ":
+            b.append(txt(x, 81, ch, 19, t["ink"], "pen", "middle"))
+        for i, a in enumerate(ALPHA):
+            b.append(bubble(x, by + i * step, r, t, filled=(a == ch), letter=a, delay=.25 + c * .11))
+    # fields
+    fx, fw = 292, 330
+    b.append(field(fx, 46, fw, "Applying for", "Product Ops, APM or PM roles", t))
+    b.append(field(fx, 106, fw, "Based in", "Gurugram, Haryana", t))
+    b.append(field(fx, 166, fw, "Education", "B.Tech ENC, Thapar Institute, 2027", t))
+    b.append(txt(fx, 238, "Can join", 14, t["print"], "cond"))
+    ox = fx
+    for i, opt in enumerate(["Immediately", "In 30 days", "In 60 days"]):
+        b.append(bubble(ox + 8, 260, 7, t, filled=(i == 0), delay=1.6 if i == 0 else None))
+        b.append(txt(ox + 22, 265, opt, 15, t["text"], "body"))
+        ox += 112
+    # photo and signature
+    px, py, pw, ph = 664, 46, 140, 176
+    b.append(f'<rect x="{px}" y="{py}" width="{pw}" height="{ph}" fill="none" stroke="{t["print"]}" stroke-width=".9" stroke-dasharray="4 3"/>')
+    b.append(f'<clipPath id="ph"><rect x="{px+6}" y="{py+6}" width="{pw-12}" height="{ph-12}"/></clipPath>')
+    b.append(image(px + 6, py + 6, pw - 12, ph - 12, "anmol-passport.jpg", clip="ph"))
+    b.append(txt(px + pw / 2, py + ph + 18, "Photograph", 13, t["print"], "cond", "middle"))
+    b.append(f'<rect x="{px}" y="252" width="{pw}" height="40" fill="none" stroke="{t["print"]}" stroke-width=".9"/>')
+    b.append(txt(px + pw / 2, 281, "Anmol Sethi", 24, t["ink"], "pen", "middle", extra='transform="rotate(-3 734 276)"'))
+    b.append(txt(px + pw / 2, 310, "Signature", 13, t["print"], "cond", "middle"))
+    # about
+    ay = 330
+    b.append(f'<rect x="{fx}" y="{ay}" width="{804-fx}" height="96" fill="{t["tint"]}" stroke="{t["rule"]}"/>')
+    lines = [
+        "I ran operations and data at MathonGo, an edtech platform, where the exam",
+        "analysis pipelines I built reached 500K+ JEE students. Now I build tools for",
+        "data that has to be right, like a live map of every startup hiring in Delhi NCR.",
+    ]
+    for i, l in enumerate(lines):
+        b.append(txt(fx + 16, ay + 30 + i * 23, l, 15, t["text"], "body"))
+    label = ("Anmol Sethi, filled in like an OMR sheet. Applying for Product Ops, APM or PM roles. "
+             "Based in Gurugram. B.Tech ENC, Thapar Institute, 2027. Can join immediately. " + " ".join(lines))
     return svg(W, H, label, "".join(b), t)
 
 
-# ------------------------------------------------------------------ stack
-STACK = [
-    ("DATA", [("siPython", "Python"), ("siPostgresql", "SQL"), ("siGooglebigquery", "BigQuery"),
-              ("siLooker", "Looker"), ("siGooglesheets", "Sheets")]),
-    ("BUILD", [("siTypescript", "TypeScript"), ("siReact", "React"), ("siNextdotjs", "Next.js"),
-               ("siTailwindcss", "Tailwind"), ("siFastapi", "FastAPI")]),
-    ("AI & ML", [("siClaude", "Claude"), ("siGooglegemini", "Gemini"), ("siPytorch", "PyTorch")]),
-    ("SHIP", [("siDocker", "Docker"), ("siFigma", "Figma"), ("siLeaflet", "Leaflet"), ("siGit", "Git")]),
+# ------------------------------------------------------------------ marks
+MARKS = [
+    ("Students reached", "500K+"),
+    ("Exams in test series", "1 → 14"),
+    ("Predictor accuracy", "99.4%"),
+    ("Interns onboarded", "100+"),
+    ("Startups mapped", f'{pins["total"]:,}'),
 ]
 
 
-def stack_card(t, theme):
+def marks(t, theme):
+    W, H = 840, 132
+    b = [timing_marks(H, t)]
+    x0, cw = 34, (W - 34 - 16) / len(MARKS)
+    b.append(f'<rect x="{x0}" y="18" width="{W-x0-16}" height="32" fill="{t["tint"]}"/>')
+    b.append(f'<line x1="{x0}" y1="50" x2="{W-16}" y2="50" stroke="{t["print"]}" stroke-width=".9"/>')
+    for i, (lab, v) in enumerate(MARKS):
+        cx = x0 + cw * i + cw / 2
+        if i:
+            b.append(f'<line x1="{x0+cw*i:.1f}" y1="18" x2="{x0+cw*i:.1f}" y2="{H-16}" stroke="{t["rule"]}"/>')
+        b.append(txt(cx, 40, lab, 14, t["print"], "cond", "middle"))
+        b.append(txt(cx, 98, v, 36, t["ink"], "pen", "middle"))
+    return svg(W, H, "From my MathonGo years and the NCR map: " + ", ".join(f"{l} {v}" for l, v in MARKS), "".join(b), t)
+
+
+# ------------------------------------------------------------------ project cards
+def card(t, title, where, lines, built, viz, label):
+    W, H = 412, 224
+    b = [txt(24, 50, title, 28, t["text"], "condb")]
+    b.append(txt(24, 72, where, 14, t["print"], "cond"))
+    for i, l in enumerate(lines):
+        b.append(txt(24, 104 + i * 21, l, 14.5, t["sub"], "body"))
+    b.append(f'<line x1="24" y1="178" x2="250" y2="178" stroke="{t["rule"]}"/>')
+    b.append(txt(24, 200, built, 13.5, t["text"], "bodym"))
+    b.append(viz)
+    return svg(W, H, label, "".join(b), t)
+
+
+def viz_map(t):
+    f, inside = project(PTS, 268, 24, 128, 180)
+    out = []
+    for p in PTS:
+        if not inside(p):
+            continue
+        x, y = f(p[0], p[1])
+        if p[2]:
+            out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="1.7" fill="{t["ink"]}"/>')
+        else:
+            out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="1.2" fill="none" stroke="{t["print"]}" stroke-width=".4" opacity=".5"/>')
+    out.append(txt(332, 210, "filled = verified address", 11.5, t["print"], "cond", "middle"))
+    return "".join(out)
+
+
+def viz_answer_key(t):
+    # each claim gets exactly one label, like one bubble per question
+    cols, rows = ["V", "I", "U"], [0, 0, 1, 0, 2, 0, 1]
+    x0, y0 = 300, 44
+    out = []
+    for j, c in enumerate(cols):
+        out.append(txt(x0 + 30 + j * 24, y0, c, 13, t["print"], "condb", "middle"))
+    for i, pick in enumerate(rows):
+        y = y0 + 20 + i * 20
+        out.append(txt(x0 + 6, y + 4, f"{i+1}", 12, t["print"], "cond", "end"))
+        for j in range(3):
+            out.append(bubble(x0 + 30 + j * 24, y, 7, t, filled=(j == pick)))
+    out.append(txt(396, 210, "verified, inferred, unknown", 11.5, t["print"], "cond", "end"))
+    return "".join(out)
+
+
+def viz_hundred(t):
+    out = []
+    x0, y0, s = 286, 34, 11.6
+    for i in range(100):
+        r_, c_ = divmod(i, 10)
+        out.append(bubble(x0 + c_ * s, y0 + r_ * s, 4.3, t, filled=i < 94))
+    out.append(txt(x0 + 4.5 * s, 210, "94 of 100 have solved auth", 11.5, t["print"], "cond", "middle"))
+    return "".join(out)
+
+
+def viz_predictor(t):
+    out = []
+    steps = [("Marks", 60, "your score"), ("Rank", 112, "category rank"), ("College", 164, "likely college")]
+    for i, (lab, y, pen) in enumerate(steps):
+        out.append(f'<rect x="296" y="{y-22}" width="96" height="34" fill="none" stroke="{t["print"]}" stroke-width=".9"/>')
+        out.append(txt(302, y - 10, lab, 11, t["print"], "cond"))
+        out.append(txt(302, y + 7, pen, 14, t["ink"], "pen"))
+        if i < 2:
+            out.append(f'<path d="M372 {y+12} q6 12 0 18" fill="none" stroke="{t["ink"]}" stroke-width="1.6" stroke-linecap="round"/>'
+                       f'<path d="M368 {y+26} l4 4 l5 -3" fill="none" stroke="{t["ink"]}" stroke-width="1.6" stroke-linecap="round"/>')
+    out.append(txt(344, 210, "JoSAA, JAC, BITSAT", 11.5, t["print"], "cond", "middle"))
+    return "".join(out)
+
+
+CARDS = [
+    ("ncrhiring", lambda t: card(t, "NCR Hiring Map", "ncrhiring.in",
+                                 [f'{pins["total"]:,} Delhi NCR startups on one', "map, built from a scraping pipeline.",
+                                  "Guessed pins never pass as verified."],
+                                 "Next.js, Leaflet, scraping", viz_map(t),
+                                 f'NCR Hiring Map at ncrhiring.in: {pins["total"]:,} Delhi NCR startups, verified addresses kept apart from guesses.')),
+    ("fieldguide", lambda t: card(t, "OAuth Fieldguide", "Live on Render",
+                                  ["Type a provider, get its OAuth setup", "guide. Every claim is labelled by",
+                                   "the evidence behind it."],
+                                  "TypeScript, React, LLM agents", viz_answer_key(t),
+                                  "OAuth Fieldguide: type a provider, get its OAuth setup guide with every claim labelled verified, inferred or unknown.")),
+    ("buildability", lambda t: card(t, "100-App Buildability", "Research report",
+                                    ["Which of 100 apps can you actually", "integrate? Every claim has a source.",
+                                     "92.5% accurate on a checked sample."],
+                                    "Python, agents, evidence tracking", viz_hundred(t),
+                                    "100-App Buildability: research on 100 apps, 94 have solved auth, 92.5% claim accuracy on a checked sample.")),
+    ("predictor", lambda t: card(t, "College Predictor", "Owned end to end at MathonGo",
+                                 ["From exam marks to a likely college", "in one flow. 99.4% accurate at launch,",
+                                  "~10 lakh visits in its first 3 months."],
+                                 "Product, data validation, UAT", viz_predictor(t),
+                                 "College Predictor at MathonGo: marks to likely college for JoSAA, JAC and BITSAT, 99.4% accurate, about 10 lakh visits in 3 months.")),
+]
+
+
+# ------------------------------------------------------------------ remarks
+QUOTE = ("Anmol is a cool-headed guy who can manage a big team at such a young age. Started working at a "
+         "young age. I worked with Anmol on multiple products from scratch at MathonGo for a good 1.5 years. "
+         "Highly recommend Anmol for management, consulting and product roles.")
+
+
+def remarks(t, theme):
     W = 840
-    b = [txt(32, 48, "Toolbox", 17, t["text"], 700),
-         txt(W - 32, 48, "what my repos are actually built with", 13, t["sub"], anchor="end")]
-    colw, tile, gap = (W - 64) / 2, 52, 76
-    rows_h = []
-    for gi, (name, items) in enumerate(STACK):
-        col, row = gi % 2, gi // 2
-        x0 = 32 + col * colw
-        y0 = 86 + row * 118
-        b.append(txt(x0, y0, name, 12, t["sub"], 700, extra='letter-spacing="1.4"'))
-        for i, (key, lab) in enumerate(items):
-            x = x0 + i * gap
-            y = y0 + 14
-            b.append(f'<rect x="{x}" y="{y}" width="{tile}" height="{tile}" rx="12" fill="{t["tile"]}" stroke="{t["line"]}"/>')
-            b.append(icon(key, x + 13, y + 13, 26, t, theme))
-            b.append(txt(x + tile / 2, y + tile + 18, lab, 12, t["sub"], 500, anchor="middle"))
-        rows_h.append(y0 + 14 + tile + 30)
-    H = int(max(rows_h)) + 6
-    names = ", ".join(l for _, items in STACK for _, l in items)
-    return svg(W, H, f"Toolbox: {names}", "".join(b), t)
+    b = [txt(36, 42, "Remarks from reporting manager", 15, t["print"], "cond")]
+    y = 80
+    lines = wrap(QUOTE, 86)
+    b.append(f'<rect x="36" y="56" width="{W-72}" height="{len(lines)*28+22}" fill="{t["tint"]}" stroke="{t["rule"]}"/>')
+    for l in lines:
+        b.append(txt(52, y + 4, l, 17, t["text"], "body"))
+        y += 28
+    y += 36
+    b.append(txt(52, y + 10, "Kunal Taneja", 30, t["ink"], "pen", extra=f'transform="rotate(-2 52 {y})"'))
+    b.append(f'<line x1="48" y1="{y+18}" x2="260" y2="{y+18}" stroke="{t["print"]}" stroke-width=".9"/>')
+    b.append(txt(52, y + 40, "Founder of Canvas Classes, ex-Head of Content at MathonGo. Managed me directly.", 14, t["sub"], "body"))
+    b.append(txt(W - 36, y + 40, "LinkedIn recommendation, May 2026", 14, t["print"], "cond", "end"))
+    H = y + 64
+    b.insert(0, timing_marks(H, t))
+    return svg(W, H, f"Remarks from Kunal Taneja, who managed Anmol at MathonGo: {QUOTE}", "".join(b), t)
+
+
+# ------------------------------------------------------------------ record
+RECORD = [
+    ("Dec 2023 to Jan 2026", "MathonGo", "mathongo-mark.png", "Operations Manager",
+     "Exam analysis for 500K+ students, test series from 1 to 14 exams, 100+ interns hired"),
+    ("Sept 2025 to Jan 2026", "ARC, Thapar", "arc.png", "President",
+     "Led a 40-person team, 5 MoUs, two podcasts at 1,500+ listeners an episode"),
+    ("2026", "Independent", None, "Builder",
+     "NCR Hiring Map, OAuth Fieldguide, the 100-app buildability study"),
+    ("Expected 2027", "Thapar Institute", "thapar.png", "B.Tech, ENC",
+     "Electronics and Computer Engineering, Patiala"),
+]
+
+
+def record(t, theme):
+    W = 840
+    cols = [(36, "When"), (190, "Where"), (352, "Role"), (512, "What came out of it")]
+    b = [f'<rect x="28" y="22" width="{W-44}" height="34" fill="{t["tint"]}"/>']
+    for x, lab in cols:
+        b.append(txt(x, 45, lab, 14, t["print"], "cond"))
+    y = 56
+    for when, org, logo, role, out in RECORD:
+        lines = wrap(out, 47)
+        rh = max(58, 24 + len(lines) * 20)
+        b.append(f'<line x1="28" y1="{y}" x2="{W-16}" y2="{y}" stroke="{t["print"] if y == 56 else t["rule"]}" stroke-width="{.9 if y == 56 else 1}"/>')
+        b.append(txt(36, y + 30, when, 14, t["sub"], "body"))
+        tx = 190
+        if logo:
+            b.append(f'<clipPath id="c{y}"><rect x="190" y="{y+13}" width="24" height="24" rx="4"/></clipPath>')
+            b.append(image(190, y + 13, 24, 24, logo, clip=f"c{y}"))
+            tx = 222
+        b.append(txt(tx, y + 30, org, 16, t["text"], "condb"))
+        b.append(txt(352, y + 30, role, 15, t["text"], "bodym"))
+        for i, l in enumerate(lines):
+            b.append(txt(512, y + 30 + i * 20, l, 14, t["sub"], "body"))
+        y += rh
+    H = y + 18
+    b.insert(0, timing_marks(H, t))
+    return svg(W, H, "Record of work: " + "; ".join(f"{w}, {o}, {r}: {x}" for w, o, _, r, x in RECORD), "".join(b), t)
+
+
+# ------------------------------------------------------------------ tools
+TOOLS = [
+    ("Data", ["Python", "SQL", "BigQuery", "Looker Studio", "Power BI", "Excel", "Google Sheets"]),
+    ("Build", ["TypeScript", "React", "Next.js", "Tailwind", "FastAPI", "PostgreSQL", "Docker"]),
+    ("AI", ["Claude", "Gemini", "OpenAI API", "PyTorch", "agent pipelines"]),
+    ("Product", ["PRDs", "UAT", "funnel analysis", "dashboards", "SOPs", "Figma"]),
+]
+
+
+def tools(t, theme):
+    W = 840
+    b = []
+    y = 46
+    for name, items in TOOLS:
+        b.append(txt(36, y + 5, name, 16, t["print"], "condb"))
+        x = 130
+        for it in items:
+            w = 26 + len(it) * 6.9
+            if x + w > W - 24:
+                x = 130
+                y += 30
+            b.append(bubble(x + 7, y, 7, t, filled=True))
+            b.append(txt(x + 21, y + 5, it, 14.5, t["text"], "body"))
+            x += w + 14
+        y += 40
+        if name != TOOLS[-1][0]:
+            b.append(f'<line x1="36" y1="{y-20}" x2="{W-24}" y2="{y-20}" stroke="{t["rule"]}"/>')
+    H = y - 8
+    b.insert(0, timing_marks(H, t))
+    return svg(W, H, "Tools I use: " + "; ".join(f"{n}: {', '.join(i)}" for n, i in TOOLS), "".join(b), t)
 
 
 # ------------------------------------------------------------------ links
-def glyph_globe(x, y, t):
-    c = t["accent"]
-    return (f'<g fill="none" stroke="{c}" stroke-width="1.8"><circle cx="{x+13}" cy="{y+13}" r="11"/>'
-            f'<ellipse cx="{x+13}" cy="{y+13}" rx="5" ry="11"/><path d="M{x+2} {y+13} h22"/></g>')
-
-
-def glyph_doc(x, y, t):
-    c = t["accent"]
-    return (f'<g fill="none" stroke="{c}" stroke-width="1.8" stroke-linejoin="round"><path d="M{x+5} {y+1} h11 l6 6 v18 h-17z"/>'
-            f'<path d="M{x+16} {y+1} v6 h6"/><path d="M{x+9} {y+14} h9 M{x+9} {y+19} h9"/></g>')
-
-
-def glyph_in(x, y, t):
-    return (f'<rect x="{x}" y="{y}" width="26" height="26" rx="5" fill="#0a66c2"/>'
-            + txt(x + 13, y + 20, "in", 17, "#ffffff", 800, anchor="middle"))
-
-
 LINKS = [
-    ("portfolio", "Portfolio", "anmolsethi.online", glyph_globe),
-    ("linkedin", "LinkedIn", "in/anmol-sethi-79ba03228", glyph_in),
-    ("email", "Email", "anmolsethi911@gmail.com", None),
-    ("resume", "Resume", "PDF, the short version", glyph_doc),
+    ("portfolio", "Portfolio", "anmolsethi.online"),
+    ("linkedin", "LinkedIn", "in/anmol-sethi-79ba03228"),
+    ("email", "Email", "anmolsethi911@gmail.com"),
+    ("resume", "Resume", "Anmol_Resume.pdf"),
 ]
 
 
-def link_card(t, theme, title, sub, glyph, key):
-    W, H = 412, 104
-    b = [f'<rect x="24" y="24" width="56" height="56" rx="14" fill="{t["tile"]}" stroke="{t["line"]}"/>']
-    if key == "email":
-        b.append(icon("siGmail", 39, 39, 26, t, theme))
-    else:
-        b.append(glyph(39, 39, t))
-    b.append(txt(100, 50, title, 19, t["text"], 700))
-    b.append(txt(100, 74, sub, 14, t["sub"]))
-    b.append(arrow(W - 48, 43, t))
-    return svg(W, H, f"{title}: {sub}", "".join(b), t)
+def link_card(t, label, value):
+    W, H = 412, 88
+    b = [txt(24, 34, label, 14, t["print"], "cond"),
+         f'<line x1="24" y1="70" x2="{W-24}" y2="70" stroke="{t["print"]}" stroke-width=".9" stroke-dasharray="2 3"/>',
+         txt(26, 64, value, 23, t["ink"], "pen")]
+    return svg(W, H, f"{label}: {value}", "".join(b), t)
 
 
 # ------------------------------------------------------------------ build
-for theme, t in THEMES.items():
-    write("hero", theme, hero(t, theme))
-    write("numbers", theme, numbers(t, theme))
-    write("quote", theme, quote_card(t, theme))
-    write("path", theme, path_card(t, theme))
-    write("stack", theme, stack_card(t, theme))
-    for name, fn in CARDS:
-        write(f"project-{name}", theme, fn(t))
-    for key, title, sub, glyph in LINKS:
-        write(f"link-{key}", theme, link_card(t, theme, title, sub, glyph, key))
-print("cards written")
+if __name__ == "__main__":
+    for theme, t in THEMES.items():
+        write("hero", theme, hero(t, theme))
+        write("marks", theme, marks(t, theme))
+        write("remarks", theme, remarks(t, theme))
+        write("record", theme, record(t, theme))
+        write("tools", theme, tools(t, theme))
+        for name, fn in CARDS:
+            write(f"project-{name}", theme, fn(t))
+        for key, label, value in LINKS:
+            write(f"link-{key}", theme, link_card(t, label, value))
+    print("cards written")
