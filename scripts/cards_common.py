@@ -31,11 +31,17 @@ FONTS = {
     ("Barlow Condensed", 600): "barlow-condensed-latin-600-normal.woff2",
     ("Barlow Condensed", 700): "barlow-condensed-latin-700-normal.woff2",
     ("Kalam", 400): "kalam-latin-400-normal.woff2",
+    ("Hind", 400): "hind-latin-400-normal.woff2",
+    ("Hind", 600): "hind-latin-600-normal.woff2",
+    ("Hind", 700): "hind-latin-700-normal.woff2",
+    ("Hind Deva", 600): "hind-devanagari-600-normal.woff2",
 }
 ROLE = {
     "body": ("Barlow", 400), "bodym": ("Barlow", 500),
     "cond": ("Barlow Condensed", 600), "condb": ("Barlow Condensed", 700),
     "pen": ("Kalam", 400),
+    "hind": ("Hind", 400), "hinds": ("Hind", 600), "hindb": ("Hind", 700),
+    "deva": ("Hind Deva", 600),
 }
 
 _used = {}  # (family, weight) -> set of chars, for the card being built
@@ -48,7 +54,7 @@ def _font_css():
         f = TTFont(path)
         opts = subset.Options()
         opts.flavor = "woff2"
-        opts.layout_features = ["kern", "liga", "tnum", "lnum"]
+        opts.layout_features = ["*"]
         s = subset.Subsetter(opts)
         s.populate(text="".join(sorted(chars | {" "})))
         s.subset(f)
@@ -68,9 +74,13 @@ MOTION = """
 """
 
 
-def svg(w, h, label, body, t):
+def svg(w, h, label, body, t, frame=True, extra_css=""):
     css = _font_css()
     _used.clear()
+    if not frame:
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+                f'width="{w}" height="{h}" viewBox="0 0 {w} {h}" role="img" aria-label="{escape(label)}">'
+                f'<title>{escape(label)}</title><style>{css}{MOTION}{extra_css}</style>{body}</svg>')
     return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
             f'width="{w}" height="{h}" viewBox="0 0 {w} {h}" role="img" aria-label="{escape(label)}">'
             f'<title>{escape(label)}</title><style>{css}{MOTION}</style>'
