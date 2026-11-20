@@ -34,13 +34,13 @@ def fetch():
 
 
 def build(u, t):
-    W, H = 840, 230
+    W = 840
     cc = u["contributionsCollection"]
-    days = [d for w in cc["contributionCalendar"]["weeks"] for d in w["contributionDays"]]
+    cal = cc["contributionCalendar"]
+    days = [d for w in cal["weeks"] for d in w["contributionDays"]]
     repos = u["repositories"]["nodes"]
     stars = sum(r["stargazerCount"] for r in repos)
-    langs = {}
-    colors = {}
+    langs, colors = {}, {}
     for r in repos:
         for e in r["languages"]["edges"]:
             n = e["node"]["name"]
@@ -49,62 +49,62 @@ def build(u, t):
     total_b = sum(langs.values()) or 1
     top = sorted(langs.items(), key=lambda x: -x[1])[:5]
 
-    # current streak, counted back from today (today may still be empty)
-    streak = 0
+    streak = 0  # counted back from today; today may still be empty
     for i, d in enumerate(reversed(days)):
         if d["contributionCount"] > 0:
             streak += 1
         elif i > 0:
             break
 
-    b = [txt(28, 34, "LIVE FROM GITHUB", 10.5, t["mute"], 700, mono=True, extra='letter-spacing="1.5"')]
+    b = [txt(32, 48, "Live from GitHub", 17, t["text"], 700)]
     stamp = datetime.now(timezone.utc).strftime("%d %b %Y")
-    b.append(txt(W - 28, 34, f"refreshed {stamp}", 10, t["mute"], 500, mono=True, anchor="end"))
+    b.append(txt(W - 32, 48, f"refreshed {stamp}", 13, t["sub"], anchor="end"))
 
     nums = [
-        (f'{cc["contributionCalendar"]["totalContributions"]:,}', "contributions, last 12 months"),
+        (f'{cal["totalContributions"]:,}', "contributions"),
         (f'{cc["totalCommitContributions"]:,}', "commits"),
         (f'{u["repositories"]["totalCount"]}', "public repos"),
-        (f"{streak}", "day streak" if streak != 1 else "day streak"),
+        (f"{stars}", "stars"),
+        (f"{streak}", "day streak"),
     ]
+    cw = (W - 64) / len(nums)
     for i, (v, l) in enumerate(nums):
-        y = 72 + i * 42
-        b.append(txt(28, y, v, 22, t["accent"] if i == 0 else t["text"], 800, extra='letter-spacing="-.6"'))
-        b.append(txt(28, y + 16, l, 10.5, t["sub"], 500, mono=True))
+        x = 32 + cw * i + cw / 2
+        if i:
+            b.append(f'<line x1="{32 + cw*i:.0f}" y1="72" x2="{32 + cw*i:.0f}" y2="124" stroke="{t["line"]}"/>')
+        col = t["accent"] if i in (0, len(nums) - 1) else t["text"]
+        b.append(txt(x, 104, v, 30, col, 800, anchor="middle", extra='letter-spacing="-1"'))
+        b.append(txt(x, 126, l, 13, t["sub"], anchor="middle"))
 
-    # heatmap, last 30 weeks
-    weeks = cc["contributionCalendar"]["weeks"][-30:]
-    hx, hy, cs, gap = 250, 52, 13, 3
+    weeks = cal["weeks"][-52:]
+    cs, gap = 11, 3.6
+    gw = len(weeks) * (cs + gap) - gap
+    hx, hy = (W - gw) / 2, 152
     mx = max([d["contributionCount"] for w in weeks for d in w["contributionDays"]] + [1])
     for wi, w in enumerate(weeks):
         for d in w["contributionDays"]:
-            dow = datetime.strptime(d["date"], "%Y-%m-%d").weekday()
-            dow = (dow + 1) % 7  # Sunday first, like GitHub
+            dow = (datetime.strptime(d["date"], "%Y-%m-%d").weekday() + 1) % 7
             c = d["contributionCount"]
-            if c == 0:
-                fill, op = t["line"], 1
-            else:
-                fill, op = t["accent"], 0.3 + 0.7 * min(1, c / mx) ** 0.6
-            b.append(f'<rect x="{hx + wi*(cs+gap)}" y="{hy + dow*(cs+gap)}" width="{cs}" height="{cs}" rx="3" fill="{fill}" opacity="{op:.2f}"/>')
+            fill, op = (t["tile"], 1) if c == 0 else (t["accent"], 0.3 + 0.7 * min(1, c / mx) ** 0.6)
+            b.append(f'<rect x="{hx + wi*(cs+gap):.1f}" y="{hy + dow*(cs+gap):.1f}" width="{cs}" height="{cs}" rx="2.5" '
+                     f'fill="{fill}" opacity="{op:.2f}" stroke="{t["line"]}" stroke-opacity="{.6 if c == 0 else 0}"/>')
 
-    # languages bar
-    ly = 190
-    b.append(txt(hx, ly - 8, "LANGUAGES ACROSS PUBLIC REPOS", 9.5, t["mute"], 700, mono=True, extra='letter-spacing="1.2"'))
-    bw = 30 * (cs + gap) - gap
+    ly = hy + 7 * (cs + gap) + 22
     x = hx
-    for n, s in top:
-        w = bw * s / total_b
-        b.append(f'<rect x="{x:.1f}" y="{ly}" width="{max(w-2,1):.1f}" height="8" rx="2" fill="{colors[n]}"/>')
+    for n, sz in top:
+        w = gw * sz / total_b
+        b.append(f'<rect x="{x:.1f}" y="{ly}" width="{max(w-3,1):.1f}" height="8" rx="4" fill="{colors[n]}"/>')
         x += w
     lx = hx
-    for n, s in top:
-        label = f"{n} {100*s/total_b:.0f}%"
-        b.append(f'<circle cx="{lx+4}" cy="{ly+24}" r="4" fill="{colors[n]}"/>')
-        b.append(txt(lx + 12, ly + 28, label, 10.5, t["sub"], 500, mono=True))
-        lx += 22 + len(label) * 6.4
+    for n, sz in top:
+        label = f"{n} {100*sz/total_b:.0f}%"
+        b.append(f'<circle cx="{lx+5}" cy="{ly+30}" r="5" fill="{colors[n]}"/>')
+        b.append(txt(lx + 16, ly + 35, label, 13, t["sub"]))
+        lx += 34 + len(label) * 7
+    H = int(ly + 58)
 
-    label = (f'{cc["contributionCalendar"]["totalContributions"]} contributions in the last year, '
-             f'{cc["totalCommitContributions"]} commits, {u["repositories"]["totalCount"]} public repos, {stars} stars')
+    label = (f'{cal["totalContributions"]} contributions in the last year, {cc["totalCommitContributions"]} commits, '
+             f'{u["repositories"]["totalCount"]} public repos, {stars} stars, {streak} day streak')
     return svg(W, H, label, "".join(b), t)
 
 
