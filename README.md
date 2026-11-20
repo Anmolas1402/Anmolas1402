@@ -1,20 +1,22 @@
 <p align="center">
-<a href="https://anmolsethi.online"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/hero-light.svg"/><img src="assets/hero-light.svg" width="100%" alt="Anmol Sethi, filled in like an OMR sheet. Applying for Product Ops, APM or PM roles. Based in Gurugram. B.Tech ENC, Thapar Institute, 2027. Can join immediately."/></picture></a>
+<a href="https://anmolsethi.online"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/hero-light.svg"/><img src="assets/hero-light.svg" width="100%" alt="Anmol Sethi, अनमोल सेठी. Product ops, Gurugram. Next station: your product team. Can join immediately."/></picture></a>
 </p>
 
 <p align="center">
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/marks-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/marks-light.svg"/><img src="assets/marks-light.svg" width="100%" alt="500K+ students reached, test series scaled from 1 to 14 exams, 99.4% College Predictor accuracy, 100+ interns onboarded, 1,298 startups mapped"/></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/numbers-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/numbers-light.svg"/><img src="assets/numbers-light.svg" width="100%" alt="500K+ students reached, 1 to 14 exams scaled, 99.4% predictor accuracy, 100+ interns onboarded, 1,298 startups mapped"/></picture>
 </p>
 
-### What I've shipped
+<p align="center">
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/route-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/route-light.svg"/><img src="assets/route-light.svg" width="100%" alt="Route map: Thapar Institute 2022, MathonGo Dec 2023 with its branch, ARC Thapar Sept 2025, NCR Hiring Map, 100-App Study and OAuth Fieldguide in 2026, next stop your team"/></picture>
+</p>
 
 <p>
-<a href="https://ncrhiring.in"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/project-ncrhiring-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/project-ncrhiring-light.svg"/><img src="assets/project-ncrhiring-light.svg" width="49%" alt="NCR Hiring Map: 1,298 Delhi NCR startups on one map"/></picture></a>
-<a href="https://github.com/Anmolas1402/oauth-fieldguide"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/project-fieldguide-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/project-fieldguide-light.svg"/><img src="assets/project-fieldguide-light.svg" width="49%" alt="OAuth Fieldguide: an OAuth setup guide for any provider, every claim labelled by evidence"/></picture></a>
+<a href="https://ncrhiring.in"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/station-ncrhiring-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/station-ncrhiring-light.svg"/><img src="assets/station-ncrhiring-light.svg" width="49%" alt="NCR Hiring Map: 1,298 Delhi NCR startups mapped"/></picture></a>
+<a href="https://github.com/Anmolas1402/oauth-fieldguide"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/station-fieldguide-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/station-fieldguide-light.svg"/><img src="assets/station-fieldguide-light.svg" width="49%" alt="OAuth Fieldguide: OAuth setup guides where every claim shows its evidence"/></picture></a>
 </p>
 <p>
-<a href="https://anmolas1402.github.io/composio-app-buildability/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/project-buildability-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/project-buildability-light.svg"/><img src="assets/project-buildability-light.svg" width="49%" alt="100-App Buildability: research on 100 apps, 92.5% claim accuracy"/></picture></a>
-<a href="https://tools.mathongo.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/project-predictor-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/project-predictor-light.svg"/><img src="assets/project-predictor-light.svg" width="49%" alt="College Predictor at MathonGo: 99.4% accurate, about 10 lakh visits in 3 months"/></picture></a>
+<a href="https://anmolas1402.github.io/composio-app-buildability/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/station-buildability-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/station-buildability-light.svg"/><img src="assets/station-buildability-light.svg" width="49%" alt="100-App Study: 92.5% claim accuracy"/></picture></a>
+<a href="https://tools.mathongo.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/station-predictor-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/station-predictor-light.svg"/><img src="assets/station-predictor-light.svg" width="49%" alt="College Predictor at MathonGo: about 10 lakh visits in 3 months"/></picture></a>
 </p>
 
 <details>
@@ -28,32 +30,16 @@
 </details>
 
 <p align="center">
-<a href="https://www.linkedin.com/in/anmol-sethi-79ba03228/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/remarks-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/remarks-light.svg"/><img src="assets/remarks-light.svg" width="100%" alt="Remarks from Kunal Taneja, who managed Anmol at MathonGo: Highly recommend Anmol for management, consulting and product roles."/></picture></a>
+<a href="https://www.linkedin.com/in/anmol-sethi-79ba03228/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/notice-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/notice-light.svg"/><img src="assets/notice-light.svg" width="100%" alt="Kunal Taneja, who managed Anmol at MathonGo: Highly recommend Anmol for management, consulting and product roles."/></picture></a>
 </p>
-
-### Record of work
-
-<p align="center">
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/record-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/record-light.svg"/><img src="assets/record-light.svg" width="100%" alt="Dec 2023 to Jan 2026, MathonGo, Operations Manager. Sept 2025 to Jan 2026, ARC Thapar, President. 2026, independent builder. Expected 2027, Thapar Institute, B.Tech ENC."/></picture>
-</p>
-
-<p align="center">
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/tools-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/tools-light.svg"/><img src="assets/tools-light.svg" width="100%" alt="Tools: Python, SQL, BigQuery, Looker Studio, Power BI, Excel, Google Sheets, TypeScript, React, Next.js, Tailwind, FastAPI, PostgreSQL, Docker, Claude, Gemini, OpenAI API, PyTorch, PRDs, UAT, funnel analysis, dashboards, SOPs, Figma"/></picture>
-</p>
-
-<p align="center">
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/stats-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/stats-light.svg"/><img src="assets/stats-light.svg" width="100%" alt="GitHub attendance over the last 12 months: contributions, commits, repos, streak and languages"/></picture>
-</p>
-
-### Reach me
 
 <p>
-<a href="https://anmolsethi.online"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/link-portfolio-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/link-portfolio-light.svg"/><img src="assets/link-portfolio-light.svg" width="49%" alt="Portfolio: anmolsethi.online"/></picture></a>
-<a href="https://www.linkedin.com/in/anmol-sethi-79ba03228/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/link-linkedin-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/link-linkedin-light.svg"/><img src="assets/link-linkedin-light.svg" width="49%" alt="Anmol Sethi on LinkedIn"/></picture></a>
+<a href="https://anmolsethi.online"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/exit-portfolio-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/exit-portfolio-light.svg"/><img src="assets/exit-portfolio-light.svg" width="49%" alt="Gate 1, Portfolio: anmolsethi.online"/></picture></a>
+<a href="https://www.linkedin.com/in/anmol-sethi-79ba03228/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/exit-linkedin-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/exit-linkedin-light.svg"/><img src="assets/exit-linkedin-light.svg" width="49%" alt="Gate 2, LinkedIn"/></picture></a>
 </p>
 <p>
-<a href="mailto:anmolsethi911@gmail.com"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/link-email-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/link-email-light.svg"/><img src="assets/link-email-light.svg" width="49%" alt="Email anmolsethi911@gmail.com"/></picture></a>
-<a href="https://anmolsethi.online/Anmol_Resume.pdf"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/link-resume-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/link-resume-light.svg"/><img src="assets/link-resume-light.svg" width="49%" alt="Anmol Sethi resume PDF"/></picture></a>
+<a href="mailto:anmolsethi911@gmail.com"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/exit-email-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/exit-email-light.svg"/><img src="assets/exit-email-light.svg" width="49%" alt="Gate 3, Email: anmolsethi911@gmail.com"/></picture></a>
+<a href="https://anmolsethi.online/Anmol_Resume.pdf"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/exit-resume-dark.svg"/><source media="(prefers-color-scheme: light)" srcset="assets/exit-resume-light.svg"/><img src="assets/exit-resume-light.svg" width="49%" alt="Gate 4, Resume"/></picture></a>
 </p>
 
 <details>
@@ -71,4 +57,4 @@ Open to Product Ops, APM and PM roles. I can join immediately.
 
 </details>
 
-<sub>Laid out like the OMR sheets whose results I spent two years analysing at MathonGo. Every card is generated by <code>scripts/</code>, with a carbon-copy version for dark mode.</sub>
+<sub>Drawn like a Delhi Metro platform, because home is NCR. Every card is generated by <code>scripts/metro.py</code>, with a dark mode version.</sub>
